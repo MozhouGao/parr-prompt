@@ -6,7 +6,7 @@ import base64
 import os
 import sys
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Sequence
 
 from anthropic import Anthropic
 from google import genai as google_genai
@@ -203,22 +203,20 @@ def _openai_compat_chat(
     return content
 
 
-def _openai_compat_chat_image(
+def _openai_compat_chat_images(
     api_key: str,
     base_url: str | None,
     model: str,
     prompt: str,
-    image_bytes: bytes,
-    mime_type: str,
+    images: Sequence[tuple[bytes, str]],
     max_tokens: int | None,
 ) -> str:
     client = OpenAI(api_key=api_key, base_url=base_url)
-    b64 = base64.standard_b64encode(image_bytes).decode("ascii")
-    data_url = f"data:{mime_type};base64,{b64}"
-    user_content: list[dict] = [
-        {"type": "text", "text": prompt},
-        {"type": "image_url", "image_url": {"url": data_url}},
-    ]
+    user_content: list[dict] = [{"type": "text", "text": prompt}]
+    for image_bytes, mime_type in images:
+        b64 = base64.standard_b64encode(image_bytes).decode("ascii")
+        data_url = f"data:{mime_type};base64,{b64}"
+        user_content.append({"type": "image_url", "image_url": {"url": data_url}})
     kwargs: dict = {
         "model": model,
         "messages": [{"role": "user", "content": user_content}],
@@ -244,22 +242,21 @@ def _gemini_chat(api_key: str, model: str, prompt: str, max_tokens: int | None) 
     return ""
 
 
-def _gemini_chat_image(
+def _gemini_chat_images(
     api_key: str,
     model: str,
     prompt: str,
-    image_bytes: bytes,
-    mime_type: str,
+    images: Sequence[tuple[bytes, str]],
     max_tokens: int | None,
 ) -> str:
     client = google_genai.Client(api_key=api_key)
     config = None
     if max_tokens is not None:
         config = google_genai.types.GenerateContentConfig(max_output_tokens=max_tokens)
-    parts = [
-        genai_types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
-        genai_types.Part.from_text(text=prompt),
-    ]
+    parts: list = []
+    for image_bytes, mime_type in images:
+        parts.append(genai_types.Part.from_bytes(data=image_bytes, mime_type=mime_type))
+    parts.append(genai_types.Part.from_text(text=prompt))
     resp = client.models.generate_content(model=model, contents=parts, config=config)
     if resp.text:
         return resp.text
@@ -281,28 +278,28 @@ def _claude_chat(api_key: str, model: str, prompt: str, max_tokens: int | None) 
     return "".join(parts)
 
 
-def _claude_chat_image(
+def _claude_chat_images(
     api_key: str,
     model: str,
     prompt: str,
-    image_bytes: bytes,
-    mime_type: str,
+    images: Sequence[tuple[bytes, str]],
     max_tokens: int | None,
 ) -> str:
     client = Anthropic(api_key=api_key)
     mt = max_tokens if max_tokens is not None else 4096
-    b64 = base64.standard_b64encode(image_bytes).decode("ascii")
-    blocks: list[dict] = [
-        {"type": "text", "text": prompt},
-        {
-            "type": "image",
-            "source": {
-                "type": "base64",
-                "media_type": mime_type,
-                "data": b64,
-            },
-        },
-    ]
+    blocks: list[dict] = [{"type": "text", "text": prompt}]
+    for image_bytes, mime_type in images:
+        b64 = base64.standard_b64encode(image_bytes).decode("ascii")
+        blocks.append(
+            {
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": mime_type,
+                    "data": b64,
+                },
+            }
+        )
     msg = client.messages.create(
         model=model,
         max_tokens=mt,
@@ -342,33 +339,29 @@ def _run_multimodal(
     api_key: str,
     model: str,
     prompt: str,
-    image_bytes: bytes,
-    mime_type: str,
+    images: Sequence[tuple[bytes, str]],
     max_tokens: int | None,
 ) -> str:
+    if not images:
+        raise ValueError("multimodal requires at least one image")
     spec = PROVIDERS[provider_id]
     if provider_id in ("openai", "grok"):
-        return _openai_compat_chat_image(
-            api_key, spec.base_url, model, prompt, image_bytes, mime_type, max_tokens
+        return _openai_compat_chat_images(
+            api_key, spec.base_url, model, prompt, images, max_tokens
         )
     if provider_id == "kimi":
-        return _openai_compat_chat_image(
+        return _openai_compat_chat_images(
             api_key,
             _moonshot_api_base(),
             model,
             prompt,
-            image_bytes,
-            mime_type,
+            images,
             max_tokens,
         )
     if provider_id == "gemini":
-        return _gemini_chat_image(
-            api_key, model, prompt, image_bytes, mime_type, max_tokens
-        )
+        return _gemini_chat_images(api_key, model, prompt, images, max_tokens)
     if provider_id == "claude":
-        return _claude_chat_image(
-            api_key, model, prompt, image_bytes, mime_type, max_tokens
-        )
+        return _claude_chat_images(api_key, model, prompt, images, max_tokens)
     raise ValueError(f"Unhandled multimodal provider: {provider_id}")
 
 
@@ -378,11 +371,17 @@ def complete_safe_multimodal(
     *,
     image_bytes: bytes | None = None,
     mime_type: str | None = None,
+    images: Sequence[tuple[bytes, str]] | None = None,
     model: str | None = None,
     max_tokens: int | None = None,
 ) -> ProviderReply:
-    """Text-only or image+text. Non-vision providers return skip when an image is set."""
-    if not image_bytes:
+    """Text-only or image+text (one or many images). Non-vision providers skip when images are set."""
+    imgs: list[tuple[bytes, str]] = []
+    if images:
+        imgs = [(b, m or "image/png") for b, m in images if b]
+    elif image_bytes:
+        imgs = [(image_bytes, mime_type or "image/png")]
+    if not imgs:
         return complete_safe(provider_id, prompt, model=model, max_tokens=max_tokens)
     if provider_id not in VISION_CAPABLE:
         spec = PROVIDERS[provider_id]
@@ -405,7 +404,7 @@ def complete_safe_multimodal(
             error=f"skipped: missing {spec.env_var}",
         )
     resolved = _resolve_model(provider_id, model, spec)
-    if provider_id == "grok" and image_bytes and not (model and str(model).strip()):
+    if provider_id == "grok" and imgs and not (model and str(model).strip()):
         resolved = os.environ.get("XAI_IMAGE_MODEL", "").strip() or GROK_DEFAULT_IMAGE_MODEL
     if not resolved:
         return ProviderReply(
@@ -414,9 +413,8 @@ def complete_safe_multimodal(
             None,
             error="skipped: no default model",
         )
-    mt = mime_type or "image/png"
     try:
-        text = _run_multimodal(provider_id, key, resolved, prompt, image_bytes, mt, max_tokens)
+        text = _run_multimodal(provider_id, key, resolved, prompt, imgs, max_tokens)
         return ProviderReply(provider_id, spec.label, text, None)
     except Exception as e:
         return ProviderReply(provider_id, spec.label, None, error=str(e))

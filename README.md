@@ -116,7 +116,7 @@ The interface is laid out like **Open WebUI**: a **left sidebar** (**API keys** 
 - **Provider checkboxes** are **disabled** until a key exists for that provider: non-empty value in the repo **`.env`** file (parsed on each sync), **`os.environ`** (including values loaded at startup by `python-dotenv`), or keys you paste under **API keys** and **Save** (stored in the **browser session** only).
 - **One provider checked** — single-model reply.  
 - **Two or more checked** — parallel calls plus **Kimi** summary when multiple succeed (expandable **Provider outputs** when useful).  
-- **Image (optional)** — upload PNG, JPEG, GIF, or WebP (max 10 MB). Image+text works for **OpenAI, Gemini, Claude, Grok, and Kimi**. **DeepSeek** and **Doubao** are skipped (DeepSeek’s API rejects multimodal message parts; only plain text is allowed in `content`).
+- **Images (optional)** — attach **one or many** PNG, JPEG, GIF, or WebP files in a single picker (up to **12** images, **10 MB** each). Image+text works for **OpenAI, Gemini, Claude, Grok, and Kimi**. **DeepSeek** and **Doubao** are skipped (DeepSeek’s API rejects multimodal message parts; only plain text is allowed in `content`).
 
 Set the same API keys in the environment as for the CLI. `MOONSHOT_API_KEY` is needed for ensemble mode **only when two or more providers return a successful answer** (so Kimi can summarize). A single successful reply does not call Kimi.
 
@@ -126,7 +126,7 @@ Set the same API keys in the environment as for the CLI. `MOONSHOT_API_KEY` is n
 
 ## Vision / images
 
-Multimodal calls use each vendor’s image APIs where implemented. If you attach an image but no text, the tools use a short default instruction such as “Describe this image.”
+Multimodal calls use each vendor’s image APIs where implemented. If you attach image(s) but no text, the app uses a short default such as “Describe this image.” or “Describe these images.” when multiple files are attached.
 
 - **Kimi** — Default model **`kimi-k2.5`** for both text and images ([Moonshot multimodal guide](https://platform.moonshot.ai/docs/guide/use-kimi-vision-model)). Override with **`MOONSHOT_DEFAULT_MODEL`** or `-m`. If you still have **`MOONSHOT_VISION_MODEL=moonshot-v1-8k`** in `.env`, remove it or point it at **`kimi-k2.5`** — that old variable was forcing a non-vision model and caused “image not supported” errors.
 - **DeepSeek** — **V3.2** text only: **`deepseek-chat`** / **`deepseek-reasoner`** via **`-m`** or **`DEEPSEEK_DEFAULT_MODEL`**. The API only allows **text** in message `content`; sending **`image_url`** parts triggers errors like `unknown variant image_url, expected text`. For image+text, use Kimi, OpenAI, Gemini, Claude, or Grok.
