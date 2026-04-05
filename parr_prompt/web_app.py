@@ -88,6 +88,7 @@ def _api_env_session(session_keys: dict | None):
                 os.environ[k] = old
 
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
+MAX_ATTACHMENTS = 12
 
 
 def _empty_state() -> html.Div:
@@ -130,13 +131,43 @@ def _img_data_url(image_data: dict | None) -> str | None:
     return f"data:{mime};base64,{image_data['b64']}"
 
 
-def _user_message_row(display_text: str, image_data: dict | None) -> html.Div:
-    src = _img_data_url(image_data)
+def _store_image_items(image_store_data) -> list[dict]:
+    """Normalize image-store payload to a list of {b64, mime} dicts."""
+    if isinstance(image_store_data, list):
+        return [x for x in image_store_data if isinstance(x, dict) and x.get("b64")]
+    if isinstance(image_store_data, dict) and image_store_data.get("b64"):
+        return [image_store_data]
+    return []
+
+
+def _decode_images_from_store(image_store_data) -> list[tuple[bytes, str]]:
+    out: list[tuple[bytes, str]] = []
+    for item in _store_image_items(image_store_data):
+        try:
+            raw = base64.b64decode(item["b64"])
+            mime = item.get("mime") or "image/png"
+            out.append((raw, mime))
+        except Exception:
+            continue
+    return out
+
+
+def _default_vision_prompt(n_images: int) -> str:
+    if n_images <= 0:
+        return ""
+    if n_images == 1:
+        return "Describe this image."
+    return "Describe these images."
+
+
+def _user_message_row(display_text: str, image_items: list[dict] | None) -> html.Div:
     bubble_children: list = []
     if display_text:
         bubble_children.append(html.Div(display_text, className="msg-text"))
-    if src:
-        bubble_children.append(html.Img(src=src, className="msg-img", alt="Attachment"))
+    for item in image_items or []:
+        src = _img_data_url(item)
+        if src:
+            bubble_children.append(html.Img(src=src, className="msg-img", alt="Attachment"))
     if not bubble_children:
         bubble_children.append(html.Div("(empty)", className="msg-text"))
     return html.Div(
@@ -228,7 +259,7 @@ def create_app() -> Dash:
     app.layout = html.Div(
         className="owui-app",
         children=[
-            dcc.Store(id="image-store", data=None),
+            dcc.Store(id="image-store", data=[]),
             dcc.Store(id="user-api-keys", storage_type="session", data=None),
             html.Aside(
                 className="owui-sidebar",
@@ -338,7 +369,7 @@ def create_app() -> Dash:
                                         n_clicks=0,
                                         className="owui-remove-attachment",
                                         type="button",
-                                        title="Remove image",
+                                        title="Remove images",
                                         style={"display": "none"},
                                     ),
                                 ],
@@ -356,10 +387,10 @@ def create_app() -> Dash:
                                         children=[
                                             dcc.Upload(
                                                 id="upload",
-                                                children=html.Div("📎", title="Attach image"),
+                                                children=html.Div("📎", title="Attach images"),
                                                 className="upload-box",
                                                 accept="image/png, image/jpeg, image/gif, image/webp",
-                                                multiple=False,
+                                                multiple=True,
                                             ),
                                         ],
                                     ),
@@ -405,15 +436,40 @@ def create_app() -> Dash:
     )
     def stash_image(contents):
         if not contents:
-            return None, None, _hidden
-        raw, mime = _parse_data_uri(contents)
-        if raw is None:
-            return None, html.Div("Could not read image.", className="err"), _shown
-        if len(raw) > MAX_IMAGE_BYTES:
-            return None, html.Div("Image too large (max 10 MB).", className="err"), _shown
+            return [], None, _hidden
+        parts = contents if isinstance(contents, list) else [contents]
+        if len(parts) > MAX_ATTACHMENTS:
+            return (
+                [],
+                html.Div(
+                    f"Too many images at once (max {MAX_ATTACHMENTS}).",
+                    className="err",
+                ),
+                _shown,
+            )
+        stored: list[dict] = []
+        thumbs: list = []
+        for c in parts:
+            raw, mime = _parse_data_uri(c)
+            if raw is None:
+                return (
+                    [],
+                    html.Div("Could not read one or more images.", className="err"),
+                    _shown,
+                )
+            if len(raw) > MAX_IMAGE_BYTES:
+                return (
+                    [],
+                    html.Div("Each image must be 10 MB or smaller.", className="err"),
+                    _shown,
+                )
+            stored.append(
+                {"b64": base64.b64encode(raw).decode("ascii"), "mime": mime or "image/png"}
+            )
+            thumbs.append(html.Img(src=c, className="upload-preview-img", alt="Attached"))
         return (
-            {"b64": base64.b64encode(raw).decode("ascii"), "mime": mime or "image/png"},
-            html.Img(src=contents, alt="Attached"),
+            stored,
+            html.Div(className="upload-preview-thumbs", children=thumbs),
             _shown,
         )
 
@@ -425,7 +481,7 @@ def create_app() -> Dash:
         prevent_initial_call=True,
     )
     def clear_attached_image(_n_clicks):
-        return None, None, _hidden
+        return [], None, _hidden
 
     @callback(
         Output("user-api-keys", "data"),
@@ -483,22 +539,16 @@ def create_app() -> Dash:
     )
     def run_prompt(n_clicks, prompt, ensemble_ids, image_data, user_keys):
         text = (prompt or "").strip()
-        img_bytes: bytes | None = None
-        mime: str | None = None
-        if image_data and isinstance(image_data, dict) and image_data.get("b64"):
-            try:
-                img_bytes = base64.b64decode(image_data["b64"])
-                mime = image_data.get("mime") or "image/png"
-            except Exception:
-                img_bytes = None
-        if not text and not img_bytes:
+        img_list = _decode_images_from_store(image_data)
+        bubble_items = _store_image_items(image_data)
+        if not text and not img_list:
             u = _user_message_row("", None)
             inner = html.Div(className="err", children="Enter a message and/or attach an image.")
             a = _assistant_message_row(inner)
             return html.Div([u, a])
 
-        display_user = text if text else ("Describe this image." if img_bytes else "")
-        user_row = _user_message_row(display_user, image_data if isinstance(image_data, dict) else None)
+        display_user = text if text else _default_vision_prompt(len(img_list))
+        user_row = _user_message_row(display_user, bubble_items)
 
         session = user_keys if isinstance(user_keys, dict) else None
         file_vals = read_dotenv_file()
@@ -522,13 +572,13 @@ def create_app() -> Dash:
             return html.Div([user_row, _assistant_message_row(inner)])
 
         with _api_env_session(session):
+            vision_prompt = text or _default_vision_prompt(len(img_list))
             if len(ids) == 1:
                 pid = ids[0]
-                r = complete_safe_multimodal(
-                    pid,
-                    text or "Describe this image.",
-                    image_bytes=img_bytes,
-                    mime_type=mime,
+                r = (
+                    complete_safe_multimodal(pid, vision_prompt, images=img_list)
+                    if img_list
+                    else complete_safe_multimodal(pid, text)
                 )
                 if r.error:
                     inner = html.Div(className="err", children=r.error)
@@ -539,11 +589,10 @@ def create_app() -> Dash:
                     )
                 return html.Div([user_row, _assistant_message_row(inner)])
 
-            replies, summary, err = ensemble_core(
-                ids,
-                text or "Describe this image.",
-                image_bytes=img_bytes,
-                mime_type=mime,
+            replies, summary, err = (
+                ensemble_core(ids, vision_prompt, images=img_list)
+                if img_list
+                else ensemble_core(ids, text)
             )
             parts: list = []
             if err:

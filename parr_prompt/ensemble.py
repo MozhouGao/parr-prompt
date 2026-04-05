@@ -62,6 +62,7 @@ def ensemble_core(
     synth_max_tokens: int | None = None,
     image_bytes: bytes | None = None,
     mime_type: str | None = None,
+    images: list[tuple[bytes, str]] | None = None,
 ) -> tuple[list[ProviderReply], str | None, str | None]:
     """
     Run the same prompt on each provider in parallel. If exactly one successful answer, return it
@@ -80,6 +81,7 @@ def ensemble_core(
             prompt,
             image_bytes=image_bytes,
             mime_type=mime_type,
+            images=images,
             max_tokens=max_tokens,
         )
 
@@ -127,6 +129,7 @@ def run_ensemble(
     synth_max_tokens: int | None = None,
     image_bytes: bytes | None = None,
     mime_type: str | None = None,
+    images: list[tuple[bytes, str]] | None = None,
 ) -> tuple[list[ProviderReply], str]:
     """
     CLI-oriented wrapper: exits the process on failure.
@@ -139,6 +142,7 @@ def run_ensemble(
         synth_max_tokens=synth_max_tokens,
         image_bytes=image_bytes,
         mime_type=mime_type,
+        images=images,
     )
     if err:
         print(err, file=sys.stderr)
