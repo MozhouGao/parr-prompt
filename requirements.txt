@@ -1,0 +1,14 @@
+# Runtime dependencies (mirrors pyproject.toml). Python 3.10+ required.
+#
+# Recommended install (editable package + console scripts):
+#   pip install -e .
+#
+# Or install deps first, then the package:
+#   pip install -r requirements.txt
+#   pip install -e .
+
+openai>=1.40.0
+anthropic>=0.34.0
+google-genai>=1.0.0
+dash>=2.14.0
+python-dotenv>=1.0.0

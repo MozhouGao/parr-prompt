@@ -1,0 +1,635 @@
+/* Open WebUI–inspired layout — sidebar: Mode + provider checklist only (no PROVIDER/footer blocks) */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+:root {
+  --ow-sidebar: #18181b;
+  --ow-sidebar-border: #27272a;
+  --ow-main: #09090b;
+  --ow-surface: #18181b;
+  --ow-elevated: #27272a;
+  --ow-border: #3f3f46;
+  --ow-text: #fafafa;
+  --ow-muted: #a1a1aa;
+  --ow-accent: #3b82f6;
+  --ow-accent-hover: #2563eb;
+  --ow-user-bubble: #27272a;
+  --ow-assistant-bg: #18181b;
+  --ow-danger-bg: rgba(239, 68, 68, 0.12);
+  --ow-danger-text: #fecaca;
+  --ow-radius: 12px;
+  --ow-radius-lg: 16px;
+  --sidebar-w: 280px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  background: var(--ow-main);
+  color: var(--ow-text);
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ----- App shell ----- */
+.owui-app {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* ----- Sidebar ----- */
+.owui-sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  background: var(--ow-sidebar);
+  border-right: 1px solid var(--ow-sidebar-border);
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 0.875rem;
+  gap: 1.25rem;
+}
+
+.owui-brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--ow-sidebar-border);
+}
+
+.owui-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.1rem;
+}
+
+.owui-title {
+  display: block;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+  color: var(--ow-text);
+}
+
+.owui-tagline {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--ow-muted);
+  margin-top: 0.15rem;
+  line-height: 1.35;
+}
+
+.owui-section-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ow-muted);
+  margin-bottom: 0.5rem;
+}
+
+.owui-provider-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.owui-provider-toolbar .owui-section-label {
+  margin-bottom: 0;
+}
+
+.owui-select-all {
+  flex-shrink: 0;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ow-text);
+  background: var(--ow-elevated);
+  border: 1px solid var(--ow-border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.owui-select-all:hover {
+  background: #3f3f46;
+  border-color: #52525b;
+}
+
+.owui-api-keys {
+  border: 1px solid var(--ow-sidebar-border);
+  border-radius: var(--ow-radius);
+  padding: 0.5rem 0.65rem;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.owui-api-keys summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #e4e4e7;
+}
+
+.owui-api-keys-hint {
+  font-size: 0.68rem;
+  color: var(--ow-muted);
+  line-height: 1.4;
+  margin: 0.5rem 0 0.65rem;
+}
+
+.owui-api-key-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 0.5rem;
+}
+
+.owui-api-key-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.owui-api-key-label {
+  font-size: 0.72rem;
+  color: #d4d4d8;
+  line-height: 1.3;
+}
+
+.owui-api-key-var {
+  font-size: 0.65rem;
+  color: var(--ow-muted);
+  font-weight: 400;
+}
+
+.owui-api-key-model-hint {
+  font-size: 0.65rem;
+  color: var(--ow-muted);
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  line-height: 1.35;
+  word-break: break-word;
+  margin: 0 0 0.1rem;
+}
+
+.owui-api-key-input {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.78rem;
+  border-radius: 8px;
+  border: 1px solid var(--ow-border);
+  background: var(--ow-elevated);
+  color: var(--ow-text);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.owui-api-key-input:focus {
+  outline: 1px solid var(--ow-accent);
+  outline-offset: 0;
+}
+
+.owui-provider-block {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.owui-checklist-scroll {
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--ow-border);
+  border-radius: var(--ow-radius);
+  padding: 0.5rem 0.65rem;
+  background: var(--ow-elevated);
+}
+
+.owui-checklist-scroll .dash-checklist label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0.35rem 0;
+  font-size: 0.8rem;
+  color: #e4e4e7;
+  cursor: pointer;
+}
+
+.owui-checklist-option-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.owui-checklist-option-label .owui-provider-name {
+  font-weight: 500;
+  color: #f4f4f5;
+}
+
+.owui-checklist-option-label .owui-provider-model {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--ow-muted);
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  word-break: break-word;
+}
+
+/* ----- Main ----- */
+.owui-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--ow-main);
+}
+
+.owui-topbar {
+  height: 52px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 1.25rem;
+  border-bottom: 1px solid var(--ow-border);
+  background: rgba(9, 9, 11, 0.85);
+  backdrop-filter: blur(8px);
+}
+
+.owui-topbar-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--ow-text);
+}
+
+.owui-chat-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 200px;
+}
+
+.owui-messages {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 2rem;
+  min-height: min(50vh, 320px);
+}
+
+.owui-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--ow-muted);
+}
+
+.owui-empty h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #e4e4e7;
+}
+
+.owui-empty p {
+  margin: 0;
+  font-size: 0.9rem;
+  max-width: 22rem;
+}
+
+/* Message rows (Open WebUI–style: user right-ish, assistant left) */
+.msg-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  align-items: flex-start;
+}
+
+.msg-row.msg-user {
+  flex-direction: row-reverse;
+}
+
+.msg-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.msg-user .msg-avatar {
+  background: var(--ow-accent);
+  color: #fff;
+}
+
+.msg-assistant .msg-avatar {
+  background: var(--ow-elevated);
+  border: 1px solid var(--ow-border);
+  color: var(--ow-muted);
+}
+
+.msg-bubble {
+  max-width: calc(100% - 48px);
+  border-radius: var(--ow-radius-lg);
+  padding: 0.85rem 1.1rem;
+  border: 1px solid var(--ow-border);
+}
+
+.msg-user .msg-bubble {
+  background: var(--ow-user-bubble);
+  border-color: #3f3f46;
+}
+
+.msg-assistant .msg-bubble {
+  background: var(--ow-assistant-bg);
+}
+
+.msg-bubble .msg-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.9375rem;
+  color: #e4e4e7;
+}
+
+.msg-bubble .msg-img {
+  margin-top: 0.5rem;
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 8px;
+  border: 1px solid var(--ow-border);
+}
+
+/* Markdown in assistant */
+.msg-assistant .markdown {
+  margin: 0;
+  line-height: 1.6;
+  font-size: 0.9375rem;
+  color: #e4e4e7;
+}
+
+.msg-assistant .markdown p {
+  margin: 0 0 0.75rem;
+}
+
+.msg-assistant .markdown p:last-child {
+  margin-bottom: 0;
+}
+
+.msg-assistant .markdown pre {
+  background: #0c0c0e;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  overflow: auto;
+  border: 1px solid var(--ow-border);
+  font-size: 0.85rem;
+}
+
+.msg-assistant .markdown code {
+  font-family: ui-monospace, monospace;
+}
+
+.msg-assistant .markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0 0.75rem;
+  font-size: 0.9rem;
+}
+
+.msg-assistant .markdown th,
+.msg-assistant .markdown td {
+  border: 1px solid var(--ow-border);
+  padding: 0.45rem 0.65rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.msg-assistant .markdown th {
+  background: var(--ow-elevated);
+  font-weight: 600;
+  color: var(--ow-text);
+}
+
+.msg-assistant .markdown tbody tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* ----- Composer (bottom bar) ----- */
+.owui-composer {
+  flex-shrink: 0;
+  padding: 0.75rem 1rem 1.25rem;
+  background: linear-gradient(to top, var(--ow-main) 70%, transparent);
+}
+
+.owui-composer-inner {
+  max-width: 48rem;
+  margin: 0 auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  background: var(--ow-surface);
+  border: 1px solid var(--ow-border);
+  border-radius: var(--ow-radius-lg);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+}
+
+.owui-attach {
+  flex-shrink: 0;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+}
+
+.owui-attach .upload-box {
+  border: none !important;
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+  background: transparent;
+  cursor: pointer;
+  color: var(--ow-muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.owui-attach .upload-box:hover {
+  background: var(--ow-elevated);
+  color: var(--ow-text);
+}
+
+.owui-composer .prompt-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.owui-composer textarea {
+  width: 100%;
+  min-height: 44px;
+  max-height: 200px;
+  padding: 0.65rem 0.5rem;
+  border: none;
+  background: transparent;
+  color: var(--ow-text);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  resize: none;
+  font-family: inherit;
+}
+
+.owui-composer textarea:focus {
+  outline: none;
+}
+
+.owui-composer textarea::placeholder {
+  color: #71717a;
+}
+
+.owui-send-wrap {
+  flex-shrink: 0;
+  padding-bottom: 2px;
+}
+
+.btn-send {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: var(--ow-accent);
+  color: #fff;
+  cursor: pointer;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: background 0.15s ease;
+}
+
+.btn-send:hover {
+  background: var(--ow-accent-hover);
+}
+
+.btn-send:active {
+  transform: scale(0.97);
+}
+
+.upload-preview-bar {
+  max-width: 48rem;
+  margin: 0 auto 0.35rem;
+  padding: 0 0.25rem;
+}
+
+.upload-preview-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.upload-preview-thumb {
+  flex: 1;
+  min-width: 0;
+}
+
+.upload-preview-thumb img {
+  max-height: 72px;
+  border-radius: 8px;
+  border: 1px solid var(--ow-border);
+  display: block;
+}
+
+.owui-remove-attachment {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  line-height: 1;
+  font-size: 1.15rem;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--ow-muted);
+  background: var(--ow-elevated);
+  border: 1px solid var(--ow-border);
+  border-radius: 8px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+}
+
+.owui-remove-attachment:hover {
+  color: var(--ow-text);
+  background: #3f3f46;
+  border-color: #52525b;
+}
+
+.err {
+  color: var(--ow-danger-text);
+  background: var(--ow-danger-bg);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  padding: 0.75rem 1rem;
+  border-radius: var(--ow-radius);
+  font-size: 0.875rem;
+}
+
+.details-block {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--ow-border);
+}
+
+.details-block summary {
+  cursor: pointer;
+  color: var(--ow-muted);
+  font-size: 0.8rem;
+}
+
+.sub-answer {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  background: #0c0c0e;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border: 1px solid var(--ow-border);
+}
+
+.sub-answer h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ow-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+._dash-loading-callback {
+  min-height: 120px;
+}
